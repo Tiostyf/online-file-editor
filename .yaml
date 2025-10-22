@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-editor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-editor
+  template:
+    metadata:
+      labels:
+        app: file-editor
+    spec:
+      containers:
+      - name: app
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: file-editor
+spec:
+  selector:
+    app: file-editor
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer
