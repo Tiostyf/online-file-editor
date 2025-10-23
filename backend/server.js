@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { execSync } from 'child_process';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -709,9 +710,25 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-// Serve frontend build (Vite `dist`) if it exists. This makes the server resilient
-// on Render and other hosts where NODE_ENV may not be set the same way.
+// Serve frontend build (Vite `dist`) if it exists. If it's missing try to
+// build the frontend automatically (useful if Render didn't run the build step).
 const clientBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
+if (!fs.existsSync(clientBuildPath)) {
+  try {
+    // Allow disabling the automatic build by setting SKIP_FRONTEND_BUILD=1
+    if (!process.env.SKIP_FRONTEND_BUILD) {
+      console.log('\u{1F528} Frontend dist not found; attempting to build the frontend automatically...');
+      // Run npm build in the frontend folder
+      execSync('npm --prefix "' + path.join(__dirname, '..', 'frontend') + '" run build', { stdio: 'inherit' });
+      console.log('\u2705 Frontend build complete');
+    } else {
+      console.log('SKIP_FRONTEND_BUILD is set; skipping automatic frontend build.');
+    }
+  } catch (err) {
+    console.error('\u274C Automatic frontend build failed:', err);
+  }
+}
+
 if (fs.existsSync(clientBuildPath)) {
   app.use(express.static(clientBuildPath));
 
