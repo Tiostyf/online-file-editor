@@ -53,10 +53,20 @@ export const useImageCompression = () => {
     }
   }
 
+  const setErrorMessage = (msg) => setError(msg)
+
+  const reset = () => {
+    setCompressedData(null)
+    setError(null)
+    setLoading(false)
+  }
+
   return {
     compressImage,
     compressedData,
     loading,
-    error
+    error,
+    setErrorMessage,
+    reset
   }
 }

@@ -16,7 +16,7 @@ function App() {
     height: ''
   })
 
-  const { compressImage, compressedData, loading, error } = useImageCompression()
+  const { compressImage, compressedData, loading, error, setErrorMessage, reset } = useImageCompression()
 
   const handleFileSelect = (file) => {
     setSelectedFile(file)
@@ -37,7 +37,7 @@ function App() {
 
   const handleCompress = async () => {
     if (!selectedFile) {
-      setError('Please select an image first')
+      setErrorMessage('Please select an image first')
       return
     }
     await compressImage(selectedFile, compressionOptions)
@@ -49,8 +49,7 @@ function App() {
 
   const handleReset = () => {
     setSelectedFile(null)
-    setCompressedData(null)
-    setError(null)
+    reset()
     setCompressionOptions({
       quality: 80,
       format: 'jpeg',

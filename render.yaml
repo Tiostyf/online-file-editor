@@ -1,0 +1,19 @@
+# Render deploy manifest (example)
+services:
+  - type: web
+    name: image-compressor-backend
+    env: node
+    plan: starter
+    buildCommand: "npm run build"
+    startCommand: "npm start"
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      # Add secrets in the Render dashboard (do not commit them in this file)
+      # - key: MONGODB_URI
+      #   scope: secret
+      # - key: JWT_SECRET
+      #   scope: secret
