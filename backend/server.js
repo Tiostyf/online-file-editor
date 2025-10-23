@@ -710,26 +710,40 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-// Serve frontend build (Vite `dist`) if it exists. If it's missing try to
-// build the frontend automatically (useful if Render didn't run the build step).
-const clientBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
-if (!fs.existsSync(clientBuildPath)) {
-  try {
-    // Allow disabling the automatic build by setting SKIP_FRONTEND_BUILD=1
-    if (!process.env.SKIP_FRONTEND_BUILD) {
-      console.log('\u{1F528} Frontend dist not found; attempting to build the frontend automatically...');
-      // Run npm build in the frontend folder
-      execSync('npm --prefix "' + path.join(__dirname, '..', 'frontend') + '" run build', { stdio: 'inherit' });
-      console.log('\u2705 Frontend build complete');
-    } else {
-      console.log('SKIP_FRONTEND_BUILD is set; skipping automatic frontend build.');
+// Try multiple candidate locations for the built frontend. Different hosts
+// sometimes use different working directories; check a few common locations
+// and pick the first existing one.
+const candidateBuildPaths = [
+  path.join(__dirname, '..', 'frontend', 'dist'),        // backend/../frontend/dist
+  path.join(process.cwd(), 'frontend', 'dist'),          // current-working-dir/frontend/dist
+  path.join(__dirname, '..', 'dist'),                    // backend/../dist
+  path.join(process.cwd(), 'dist')                       // current-working-dir/dist
+];
+
+let clientBuildPath = candidateBuildPaths.find(p => fs.existsSync(p));
+
+if (!clientBuildPath) {
+  // If not found, optionally try an automatic build (only when not skipped)
+  if (!process.env.SKIP_FRONTEND_BUILD) {
+    try {
+      console.log('\u{1F528} No frontend build found in candidate paths. Attempting to build frontend...');
+      execSync('npm --prefix "' + path.join(process.cwd(), 'frontend') + '" install --no-audit --no-fund', { stdio: 'inherit' });
+      execSync('npm --prefix "' + path.join(process.cwd(), 'frontend') + '" run build', { stdio: 'inherit' });
+      // After building, re-evaluate candidates
+      clientBuildPath = candidateBuildPaths.find(p => fs.existsSync(p));
+      if (clientBuildPath) {
+        console.log('\u2705 Frontend built and found at:', clientBuildPath);
+      }
+    } catch (err) {
+      console.error('\u274C Automatic frontend build failed:', err && err.message ? err.message : err);
     }
-  } catch (err) {
-    console.error('\u274C Automatic frontend build failed:', err);
+  } else {
+    console.log('SKIP_FRONTEND_BUILD is set; skipping automatic frontend build.');
   }
 }
 
-if (fs.existsSync(clientBuildPath)) {
+if (clientBuildPath) {
+  console.log(`\u{1F4C4} Serving frontend from: ${clientBuildPath}`);
   app.use(express.static(clientBuildPath));
 
   // Root route: serve index.html for '/', and also add a general SPA fallback
@@ -741,10 +755,8 @@ if (fs.existsSync(clientBuildPath)) {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
-
-  console.log(`\u{1F4C4} Serving frontend from: ${clientBuildPath}`);
 } else {
-  console.warn(`\u26A0\uFE0F Frontend dist not found at ${clientBuildPath}. Build the frontend before starting the server or ensure Render runs the build step.`);
+  console.warn('\u26A0\uFE0F No frontend build found in any candidate path. Please ensure the frontend build ran during the build step or set SKIP_FRONTEND_BUILD=1 to skip automatic build attempts.');
 }
 
 app.use((error, req, res, next) => {
