@@ -712,7 +712,8 @@ app.use('/api/*', (req, res) => {
 
 // Try multiple candidate locations for the built frontend. Different hosts
 // sometimes use different working directories; check a few common locations
-// and pick the first existing one.
+// and pick the first existing one. Do NOT attempt to build at runtime; Render
+// should run the build during the Build phase.
 const candidateBuildPaths = [
   path.join(__dirname, '..', 'frontend', 'dist'),        // backend/../frontend/dist
   path.join(process.cwd(), 'frontend', 'dist'),          // current-working-dir/frontend/dist
@@ -720,27 +721,7 @@ const candidateBuildPaths = [
   path.join(process.cwd(), 'dist')                       // current-working-dir/dist
 ];
 
-let clientBuildPath = candidateBuildPaths.find(p => fs.existsSync(p));
-
-if (!clientBuildPath) {
-  // If not found, optionally try an automatic build (only when not skipped)
-  if (!process.env.SKIP_FRONTEND_BUILD) {
-    try {
-      console.log('\u{1F528} No frontend build found in candidate paths. Attempting to build frontend...');
-      execSync('npm --prefix "' + path.join(process.cwd(), 'frontend') + '" install --no-audit --no-fund', { stdio: 'inherit' });
-      execSync('npm --prefix "' + path.join(process.cwd(), 'frontend') + '" run build', { stdio: 'inherit' });
-      // After building, re-evaluate candidates
-      clientBuildPath = candidateBuildPaths.find(p => fs.existsSync(p));
-      if (clientBuildPath) {
-        console.log('\u2705 Frontend built and found at:', clientBuildPath);
-      }
-    } catch (err) {
-      console.error('\u274C Automatic frontend build failed:', err && err.message ? err.message : err);
-    }
-  } else {
-    console.log('SKIP_FRONTEND_BUILD is set; skipping automatic frontend build.');
-  }
-}
+const clientBuildPath = candidateBuildPaths.find(p => fs.existsSync(p));
 
 if (clientBuildPath) {
   console.log(`\u{1F4C4} Serving frontend from: ${clientBuildPath}`);
@@ -756,7 +737,7 @@ if (clientBuildPath) {
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 } else {
-  console.warn('\u26A0\uFE0F No frontend build found in any candidate path. Please ensure the frontend build ran during the build step or set SKIP_FRONTEND_BUILD=1 to skip automatic build attempts.');
+  console.warn('\u26A0\uFE0F No frontend build found in candidate paths. Make sure Render runs the frontend build during the Build phase (see README_RENDER.md).');
 }
 
 app.use((error, req, res, next) => {
