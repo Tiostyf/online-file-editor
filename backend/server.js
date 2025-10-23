@@ -709,19 +709,25 @@ app.use('/api/*', (req, res) => {
   res.status(404).json({ error: 'API endpoint not found' });
 });
 
-// Serve frontend build (Vite `dist`) when running in production
-// This allows the backend to serve the built SPA and keeps API routes under /api.
+// Serve frontend build (Vite `dist`) if it exists. This makes the server resilient
+// on Render and other hosts where NODE_ENV may not be set the same way.
 const clientBuildPath = path.join(__dirname, '..', 'frontend', 'dist');
-if (process.env.NODE_ENV === 'production' && fs.existsSync(clientBuildPath)) {
+if (fs.existsSync(clientBuildPath)) {
   app.use(express.static(clientBuildPath));
 
-  // SPA fallback: serve index.html for non-API routes so client-side routing works
+  // Root route: serve index.html for '/', and also add a general SPA fallback
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(clientBuildPath, 'index.html'));
   });
 
   console.log(`\u{1F4C4} Serving frontend from: ${clientBuildPath}`);
+} else {
+  console.warn(`\u26A0\uFE0F Frontend dist not found at ${clientBuildPath}. Build the frontend before starting the server or ensure Render runs the build step.`);
 }
 
 app.use((error, req, res, next) => {
