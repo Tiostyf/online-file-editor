@@ -5,7 +5,7 @@ services:
     env: node
     plan: starter
   # Ensure frontend devDependencies (vite, plugins) are installed and build runs
-  buildCommand: "npm --prefix frontend install && npm --prefix frontend run build"
+  buildCommand: "npm run build:frontend"
     startCommand: "npm start"
     region: oregon
     envVars:

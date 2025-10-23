@@ -1,6 +1,6 @@
 [build]
   # Install frontend deps and build the Vite app
-  command = "npm --prefix frontend install && npm --prefix frontend run build"
+  command = "npm run build:frontend"
   # Publish the built static files
   publish = "frontend/dist"
 
