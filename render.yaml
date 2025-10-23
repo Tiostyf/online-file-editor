@@ -4,7 +4,8 @@ services:
     name: image-compressor-backend
     env: node
     plan: starter
-    buildCommand: "npm run build"
+  # Ensure frontend devDependencies (vite, plugins) are installed and build runs
+  buildCommand: "npm --prefix frontend install && npm --prefix frontend run build"
     startCommand: "npm start"
     region: oregon
     envVars:

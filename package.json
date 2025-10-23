@@ -7,7 +7,7 @@
     "build-frontend": "npm --prefix frontend run build",
     "build": "npm run build-frontend",
     "start-backend": "node backend/server.js",
-    "start": "npm run build-frontend && NODE_ENV=production node backend/server.js",
+  "start": "NODE_ENV=production node backend/server.js",
     "start:prod": "node scripts/start-prod.js",
     "smoke-test": "node scripts/smoke-test.js"
   }
